@@ -1,5 +1,7 @@
 # Riak Auth
 
+[![Build Status][travis-img]][travis]
+
 Authentication and identity management on top of Riak KV
 
 
@@ -83,3 +85,5 @@ riakauth:authenticate(Pid, Bucket, Index, GoogleIdentity, fun() -> <<"42">> end)
 The source code is provided under the terms of [the MIT license][license].
 
 [license]:http://www.opensource.org/licenses/MIT
+[travis]:https://travis-ci.org/manifest/riak-auth?branch=master
+[travis-img]:https://secure.travis-ci.org/manifest/riak-auth.png
