@@ -94,6 +94,8 @@ one_identity(Config) ->
 		riakauth_account:update_identity_dt(
 			Identity,
 			riakauth_account:new_dt())),
+
+	do_wait(),
 	{Key, A} = do_retry(fun() -> riakauth:authenticate(Pid, Bucket, Index, Identity, HandleKey) end),
 	{ok, _} = riakauth_account:find_identity_rawdt(Identity, A).
 
@@ -120,6 +122,7 @@ same_identities_same_accounts(Config) ->
 			Bident,
 			riakauth_account:new_dt())),
 
+	do_wait(),
 	[begin
 		{Key, A} = do_retry(fun() -> riakauth:authenticate(Pid, Bucket, Index, Identity, HandleKey, HandleData) end),
 		{ok, _} = riakauth_account:find_identity_rawdt(Identity, A)
@@ -150,12 +153,17 @@ same_identities_different_accounts(Config) ->
 			Bident,
 			Time +1,
 			riakauth_account:new_dt())),
+
+	do_wait(),
 	{Akey, A} = do_retry(fun() -> riakauth:authenticate(Pid, Bucket, Index, Aident, HandleKey, HandleData, Time +2) end),
 	{ok, _} = riakauth_account:find_identity_rawdt(Aident, A).
 
 %% =============================================================================
 %% Internal functions
 %% =============================================================================
+
+do_wait() ->
+	timer:sleep(3000).
 
 do_retry(Authenticate) ->
 	try Authenticate()
