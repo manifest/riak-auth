@@ -4,6 +4,7 @@ PROJECT='riak-auth'
 PROJECT_DIR="/opt/sandbox/${PROJECT}"
 DOCKER_CONTAINER_NAME="sandbox/${PROJECT}"
 DOCKER_CONTAINER_COMMAND=${DOCKER_CONTAINER_COMMAND:-'/bin/bash'}
+DOCKER_RUN_OPTIONS=${DOCKER_RUN_OPTIONS:-'-ti --rm'}
 DOCKER_RIAKKV_PROTOBUF_PORT=${DOCKER_RIAKKV_PROTOBUF_PORT:-8087}
 DOCKER_RIAKKV_HTTP_PORT=${DOCKER_RIAKKV_HTTP_PORT:-8098}
 DEVELOP_ENVIRONMENT='.develop-environment'
@@ -12,8 +13,11 @@ ULIMIT_FD=262144
 function CREATE_DEVELOP_ENVIRONMENT() {
 	local DOCKER_MACHINE_IP=$(docker-machine ip)
 	local DOCKER_IP=${DOCKER_MACHINE_IP:-'localhost'}
-	printf "{kv_protobuf, #{host => \"%s\", port => %s}}.\n" "${DOCKER_IP}" "${DOCKER_RIAKKV_PROTOBUF_PORT}" > "${DEVELOP_ENVIRONMENT}"
-	printf "{kv_http, #{host => \"%s\", port => %s}}.\n" "${DOCKER_IP}" "${DOCKER_RIAKKV_HTTP_PORT}" >> "${DEVELOP_ENVIRONMENT}"
+	printf \
+		"#{kv_protobuf => #{host => \"%s\", port => %s}, kv_http => #{host => \"%s\", port => %s}}." \
+		"${DOCKER_IP}" "${DOCKER_RIAKKV_PROTOBUF_PORT}" \
+		"${DOCKER_IP}" "${DOCKER_RIAKKV_HTTP_PORT}" \
+		> "${DEVELOP_ENVIRONMENT}"
 }
 
 function PROPS() {
@@ -56,7 +60,7 @@ EOF
 
 CREATE_DEVELOP_ENVIRONMENT
 docker build -t ${DOCKER_CONTAINER_NAME} .
-docker run -ti --rm \
+docker run ${DOCKER_RUN_OPTIONS} \
 	-v $(pwd):${PROJECT_DIR} \
 	--ulimit nofile=${ULIMIT_FD}:${ULIMIT_FD} \
 	-p ${DOCKER_RIAKKV_PROTOBUF_PORT}:8087 \

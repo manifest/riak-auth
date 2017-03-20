@@ -62,7 +62,7 @@ authenticate(Pid, Bucket, Index, Identity, HandleKey, HandleData, Time) ->
 					A0 = riakauth_account:new_dt(),
 					A1 = riakauth_account:update_identity_dt(Identity, Time, A0),
 					A2 = riakauth_account:update_data_dt(HandleData, A1),
-					riakauth_account:put(Pid, Bucket, Key, A2),
+					_ = riakauth_account:put(Pid, Bucket, Key, A2),
 					{Key, A2}
 			end
 	end.
