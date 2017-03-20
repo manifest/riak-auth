@@ -34,7 +34,8 @@
 	get/3,
 	get/4,
 	get/5,
-	put/4
+	put/4,
+	put/5
 ]).
 
 %% DataType API
@@ -116,10 +117,15 @@ find(Pid, Bucket, Key, Opts) ->
 		Else                       -> exit({bad_return_value, Else})
 	end.
 
--spec put(pid(), bucket_and_type(), binary(), account()) -> ok.
+-spec put(pid(), bucket_and_type(), binary(), account()) -> account().
 put(Pid, Bucket, Key, A) ->
-	case catch riakc_pb_socket:update_type(Pid, Bucket, Key, riakc_map:to_op(A), [{pw, quorum}]) of
-		ok                  -> ok;
+	put(Pid, Bucket, Key, A, []).
+
+-spec put(pid(), bucket_and_type(), binary(), account(), [proplists:property()]) -> account().
+put(Pid, Bucket, Key, A, Opts) ->
+	case catch riakc_pb_socket:update_type(Pid, Bucket, Key, riakc_map:to_op(A), [{pw, quorum}|Opts]) of
+		ok                  -> A;
+		{ok, Amodified}     -> Amodified;
 		{error, unmodified} -> ok;
 		{error, Reason}     -> exit(Reason);
 		{'EXIT', Reason}    -> exit(Reason);
