@@ -42,8 +42,10 @@
 	new_dt/0,
 	update_dt/3,
 	update_dt/4,
-	data_dt/1,
+	data_rawdt/1,
 	update_data_dt/2,
+	identity_rawdt/2,
+	find_identity_rawdt/2,
 	update_identity_dt/2,
 	update_identity_dt/3,
 	remove_identity_dt/2
@@ -54,6 +56,7 @@
 
 %% Types
 -type identity() :: [binary()].
+-type rawdt()    :: {{binary(), riakc_datatype:datatype()}, any()}.
 -type data()     :: riakc_map:crdt_map().
 -type account()  :: riakc_map:crdt_map().
 
@@ -140,8 +143,22 @@ update_dt(Identity, HandleData, CreatedAt, A0) ->
 	A1 = update_identity_dt(Identity, CreatedAt, A0),
 	update_data_dt(HandleData, A1).
 
--spec data_dt(account()) -> any().
-data_dt(A) ->
+-spec identity_rawdt(identity(), account()) -> [rawdt()].
+identity_rawdt(Identity, A) ->
+	case find_identity_rawdt(Identity, A) of
+		{ok, Val} -> Val;
+		_         -> error({bad_key, Identity})
+	end.
+
+-spec find_identity_rawdt(identity(), account()) -> {ok, [rawdt()]} | error.
+find_identity_rawdt(Identity, A) ->
+	case riakc_map:find({<<"auth">>, map}, A) of
+		{ok, Raw} -> find_in_rawdt(Identity, Raw);
+		_         -> error
+	end.
+
+-spec data_rawdt(account()) -> any().
+data_rawdt(A) ->
 	riakc_map:fetch({<<"data">>, map}, A).
 
 -spec update_data_dt(fun((data()) -> data()), account()) -> account().
@@ -163,8 +180,8 @@ update_identity_dt(Identity, CreatedAt, A) ->
 
 -spec remove_identity_dt(identity(), account()) -> account().
 remove_identity_dt(Identity, A) ->
-	try riakc_map:fetch({<<"auth">>, map}, A) of
-		Raw ->
+	case riakc_map:find({<<"auth">>, map}, A) of
+		{ok, Raw} ->
 			SizesReverted = size_in_rawdt(Identity, Raw, []),
 			case length(SizesReverted) =:= length(Identity) of
 				true ->
@@ -181,10 +198,12 @@ remove_identity_dt(Identity, A) ->
 					%% The specified identity isn't fully presented in the account object,
 					%% so that our work is done.
 					A
-			end
-	%% There is no "auth" property in the account object,
-	%% so that our work is done.
-	catch _:_ -> A end.
+			end;
+		_ ->
+			%% There is no "auth" property in the account object,
+			%% so that our work is done.
+			A
+	end.
 
 %% =============================================================================
 %% Internal functions
@@ -197,6 +216,15 @@ identity_path(Identity) ->
 -spec identity_path(identity(), binary()) -> binary().
 identity_path([Val|T], Acc) -> identity_path(T, <<Acc/binary, Val/binary, "_map.">>);
 identity_path([], Acc)      -> Acc.
+
+-spec find_in_rawdt(identity(), [rawdt()]) -> {ok, [rawdt()]} | error.
+find_in_rawdt([Key|T], Raw0) ->
+	case lists:keyfind({Key, map}, 1, Raw0) of
+		{_, Raw1} -> find_in_rawdt(T, Raw1);
+		_         -> error
+	end;
+find_in_rawdt([], Raw) ->
+	{ok, Raw}.
 
 -spec update_in_dt([binary()], fun((M) -> M), M) -> any() when M :: riakc_map:crdt_map().
 update_in_dt([Key|T], Handle, M) -> riakc_map:update({Key, map}, fun(Obj) -> update_in_dt(T, Handle, Obj) end, M);
