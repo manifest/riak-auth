@@ -5,6 +5,29 @@
 Authentication and identity management on top of Riak KV
 
 
+### Why you might consider to use this library
+
+- Reliability.
+	By default, strict quorum (pr=quorum) of vnodes is required for
+	create or update operations on accounts. You would always know if operation is failed.
+- Availability.
+	By default, sloppy quorum of vnodes is used for read operations on accounts.
+	You would able to authenticate user's requests even when all but one vnode fail.
+- Horizontal scalability.
+	Being based on Riak KV, the number of account entries aren't important anymore.
+- High performance.
+	Just one request 'by key' after Solr query are used for authenticate operations.
+- Flexibility.
+	Create, link and unlink identities to/from accounts.
+	The identities conflict resolution scheme is provided out of the box.
+	It's on your own to choose where to store accounts data and how to query them,
+	by specifying bucket and index names of Riak KV.
+- Extensibility.
+	Custom data can be embedded within account entries.
+- Support for Solr-based Riak search 2.0.
+	If you need to perform queries through accounts data, schemas are available.
+
+
 ### Overview
 
 Riak Auth is an extendable authentication framework that stored accounts data in Riak KV.
