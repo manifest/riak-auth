@@ -1,5 +1,15 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <schema name="default" version="1.5">
+	<!--
+		- data: map
+		- auth: map
+			- ${IDENTITY_SEGMENT}: map
+				... ${IDENTITY_SEGMENT}: map
+					- cat: register
+
+		NOTE: an entry can have from 0 to infinity ${IDENTITY_SEGMENT} nested elements.
+		NOTE: 'data' is used for application-specific fields.
+	-->
 
 	<fields>
 		<!-- created at: int(unix_time(microseconds())) -->
