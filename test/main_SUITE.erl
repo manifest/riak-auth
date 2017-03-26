@@ -53,8 +53,8 @@ identity_roundtrip(Config) ->
 	Bucket = ?config(bucket, Config),
 	Key = riakauth_cth:make_key(),
 	Identity = riakauth_cth:make_identity(),
-	Pid = riakauth_cth:riakc_open(Config),
 
+	Pid = riakauth_cth:riakc_open(Config),
 	riakauth_account:put(
 		Pid, Bucket, Key,
 		riakauth_account:update_identity_dt(
@@ -68,6 +68,52 @@ identity_roundtrip(Config) ->
 			Identity,
 			riakauth_account:get(Pid, Bucket, Key))),
 	false = riakauth_cth:has_identity(Pid, Bucket, Key, Identity).
+
+%% Identities of the account can be queried by authentication keys.
+query_identities(Config) ->
+	Bucket = ?config(bucket, Config),
+	Key = riakauth_cth:make_key(),
+	IdentityAProt = riakauth_cth:make_identity_segment(),
+	IdentityAProtProv1 = riakauth_cth:make_identity_segment(),
+	IdentityAProtProv2 = riakauth_cth:make_identity_segment(),
+	IdentityAProtUid1 = riakauth_cth:make_identity_segment(),
+	IdentityAProtUid2 = riakauth_cth:make_identity_segment(),
+	IdentityAProtUid3 = riakauth_cth:make_identity_segment(),
+	IdentityAKey1 = [IdentityAProt, IdentityAProtProv1],
+	IdentityAKey2 = [IdentityAProt, IdentityAProtProv2],
+	IdentityA1 = [IdentityAProt, IdentityAProtProv1, IdentityAProtUid1],
+	IdentityA2 = [IdentityAProt, IdentityAProtProv1, IdentityAProtUid2],
+	IdentityA3 = [IdentityAProt, IdentityAProtProv2, IdentityAProtUid3],
+	IdentityBProt = riakauth_cth:make_identity_segment(),
+	IdentityBProtCredentials1 = riakauth_cth:make_identity_segment(),
+	IdentityBProtCredentials2 = riakauth_cth:make_identity_segment(),
+	IdentityBKey = [IdentityAProt],
+	IdentityB1 = [IdentityBProt, IdentityBProtCredentials1],
+	IdentityB2 = [IdentityBProt, IdentityBProtCredentials2],
+	Handle = fun(Segment, Acc) -> [Segment|Acc] end,
+	A0 = riakauth_account:new_dt(),
+	A1 = riakauth_account:update_identity_dt(IdentityA1, A0),
+	A2 = riakauth_account:update_identity_dt(IdentityA2, A1),
+	A3 = riakauth_account:update_identity_dt(IdentityB1, A2),
+	A4 = riakauth_account:update_identity_dt(IdentityB2, A3),
+	Test =
+		[	%% No authkeys - no identities
+			{[], []},
+			%% All protocols (top-level segments of authkeys)
+			{[[]], [[IdentityAProt], [IdentityBProt]]},
+			%% All identities
+			{[IdentityAKey1, IdentityAKey2, IdentityBKey], [IdentityA1, IdentityA2, IdentityA3, IdentityB1, IdentityB2]},
+			%% Filter by the specified authkey
+			{[IdentityAKey1], [IdentityA1, IdentityA2]} ],
+
+	Pid = riakauth_cth:riakc_open(Config),
+	A = riakauth_account:put(Pid, Bucket, Key, A4, [return_body]),
+	[begin
+		[] =
+			lists:subtract(
+				riakauth_account:fold_identities_dt(Handle, Keys, [], A),
+				Identities)
+	end || {Keys, Identities} <- Test].
 
 %% Account will be created, if the specified identity hasn't presented yet.
 no_identity(Config) ->
@@ -162,9 +208,11 @@ same_identities_different_accounts(Config) ->
 %% Internal functions
 %% =============================================================================
 
+-spec do_wait() -> ok.
 do_wait() ->
 	timer:sleep(3000).
 
+-spec do_retry(function()) -> ok.
 do_retry(Authenticate) ->
 	try Authenticate()
 	catch

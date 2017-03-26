@@ -49,7 +49,8 @@
 	find_identity_rawdt/2,
 	update_identity_dt/2,
 	update_identity_dt/3,
-	remove_identity_dt/2
+	remove_identity_dt/2,
+	fold_identities_dt/4
 ]).
 
 %% Definitions
@@ -211,6 +212,17 @@ remove_identity_dt(Identity, A) ->
 			A
 	end.
 
+-spec fold_identities_dt(fun((identity(), any()) -> any()), [binary()], any(), account()) -> any().
+fold_identities_dt(HandleIdentity, Keys, AccIn, A) ->
+	case riakc_map:find({<<"auth">>, map}, A) of
+		{ok, Input} ->
+			fold_identies_in_dt(HandleIdentity, Keys, AccIn, Input);
+		_ ->
+			%% There is no "auth" property in the account object,
+			%% so that our work is done.
+			A
+	end.
+
 %% =============================================================================
 %% Internal functions
 %% =============================================================================
@@ -233,7 +245,7 @@ find_in_rawdt([], Raw) ->
 	{ok, Raw}.
 
 -spec update_in_dt([binary()], fun((M) -> M), M) -> any() when M :: riakc_map:crdt_map().
-update_in_dt([Key|T], Handle, M) -> riakc_map:update({Key, map}, fun(Obj) -> update_in_dt(T, Handle, Obj) end, M);
+update_in_dt([Key|T], Handle, M)  -> riakc_map:update({Key, map}, fun(Obj) -> update_in_dt(T, Handle, Obj) end, M);
 update_in_dt([], Handle, M)       -> Handle(M).
 
 -spec size_in_rawdt([binary()], list(), [non_neg_integer()]) -> [non_neg_integer()].
@@ -249,3 +261,39 @@ size_in_rawdt([], _Raw, Acc) ->
 remove_in_dt([], M)      -> M;
 remove_in_dt([Key], M)   -> riakc_map:erase({Key, map}, M);
 remove_in_dt([Key|T], M) -> riakc_map:update({Key, map}, fun(Obj) -> remove_in_dt(T, Obj) end, M).
+
+-spec fold_identies_in_dt(fun((identity(), any()) -> any()), [binary()], any(), [rawdt()]) -> any().
+fold_identies_in_dt(Handle, Keys, AccIn, Input) ->
+	fold_identies_in_dt(Handle, Keys, AccIn, Input, []).
+
+-spec fold_identies_in_dt(fun((identity(), any()) -> any()), [binary()], any(), [rawdt()], [binary()]) -> any().
+fold_identies_in_dt(Handle, Keys0, AccIn0, Input0, Acc) ->
+	lists:foldl(
+		fun
+			({{Segment, map}, Input1}, AccIn1) ->
+				case filter_identity_keys(Keys0, Segment) of
+					{ok, Keys1} ->
+						fold_identies_in_dt(Handle, Keys1, AccIn1, Input1, [Segment|Acc]);
+					commit ->
+						Handle(lists:reverse([Segment|Acc]), AccIn1);
+					_ ->
+						%% The segment's name doesn't match any of the specified keys.
+						AccIn1
+				end;
+			(_, AccIn1) ->
+				%% An element of the "auth" map isn't a map,
+				%% so that it cannot be a segment.
+				AccIn1
+		end, AccIn0, Input0).
+
+
+-spec filter_identity_keys(Keys, binary()) -> {ok, Keys} | commit | error when Keys :: [[binary()]].
+filter_identity_keys(Keys, Segment) ->
+	filter_identity_keys(Keys, Segment, error, []).
+
+-spec filter_identity_keys(Keys, binary(), ok | commit | error, Keys) -> {ok, Keys} | commit | error when Keys :: [[binary()]].
+filter_identity_keys([[Kh|Kt]|T], Segment, _St, Acc) when Kh =:= Segment -> filter_identity_keys(T, Segment, ok, [Kt|Acc]);
+filter_identity_keys([[]|T], Segment, _St, Acc)                          -> filter_identity_keys(T, Segment, commit, Acc);
+filter_identity_keys([_|T], Segment, St, Acc)                            -> filter_identity_keys(T, Segment, St, Acc);
+filter_identity_keys([], _Segment, ok, Acc)                              -> {ok, Acc};
+filter_identity_keys([], _Segment, St, _Acc)                             -> St.

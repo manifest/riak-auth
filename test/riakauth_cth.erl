@@ -32,7 +32,8 @@
 	riakc_open/1,
 	has_identity/4,
 	make_key/0,
-	make_identity/0
+	make_identity/0,
+	make_identity_segment/0
 ]).
 
 %% =============================================================================
@@ -66,7 +67,11 @@ has_identity(Pid, Bucket, Key, Identity) ->
 
 -spec make_identity() -> riakauth_account:identity().
 make_identity() ->
-	[list_to_binary(vector(8, alphanum_chars())) || _ <- lists:seq(1, rand:uniform(5))].
+	[make_identity_segment() || _ <- lists:seq(1, rand:uniform(5))].
+
+-spec make_identity_segment() -> binary().
+make_identity_segment() ->
+	list_to_binary(vector(8, alphanum_chars())).
 
 -spec make_key() -> binary().
 make_key() ->
