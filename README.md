@@ -38,14 +38,19 @@ The identity could be any list of binary strings:
 - `[<<"oauth2">>, <<"google-plus">>, <<"1">>]` or `[<<"oauth1">>, <<"twitter">>, <<"2">>]`
 	could be used to describe: a protocol, a provider identifier and a user's identifier
 	in case of Social Login;
-- `[<<"John">>, <<"xyz">>]` could represent a username with a hash of password;
-- `[<<"https://example.org?ref=123">>]` for an unique shareable link.
+- `[<<"password">>, <<"John:xyz">>]` could represent a username with a hash of password;
+- `[<<"uniqlink">>, <<"https://example.org?ref=123">>]` for an unique shareable link.
 
 With the library you can not only authenticate users but also link identities
 of different external services. In other words, social accounts of Google Plus
 and Facebook could be linked within one account along with an ability
 to use a username and a password for the login.
 
+There are no restrictions on the format of identities. The best practice,
+to use from one to many first segments for something we call **authentication key**
+(part of the identity that describe an identity provider itself and has nothing in common
+with a particular user) and the very last segment for a **user identifier** or **user's credentials**.
+That rules will make indentities more compact for storing and simple for querying.
 
 ### How To Use
 
