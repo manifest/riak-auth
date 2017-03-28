@@ -62,7 +62,7 @@
 -type data()     :: riakc_map:crdt_map().
 -type account()  :: riakc_map:crdt_map().
 
--export_type([account/0, data/0]).
+-export_type([identity/0, rawdt/0, account/0, data/0]).
 
 %% =============================================================================
 %% API
