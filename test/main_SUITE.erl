@@ -90,7 +90,7 @@ query_identities(Config) ->
 	IdentityBKey = [IdentityAProt],
 	IdentityB1 = [IdentityBProt, IdentityBProtCredentials1],
 	IdentityB2 = [IdentityBProt, IdentityBProtCredentials2],
-	Handle = fun(Identity, Acc) -> [Identity|Acc] end,
+	Handle = fun(Identity, _Raw, Acc) -> [Identity|Acc] end,
 	A0 = riakauth_account:new_dt(),
 	A1 = riakauth_account:update_identity_dt(IdentityA1, A0),
 	A2 = riakauth_account:update_identity_dt(IdentityA2, A1),

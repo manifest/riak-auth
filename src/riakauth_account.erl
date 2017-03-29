@@ -57,12 +57,12 @@
 -define(DEFAULT_REQUEST_TIMEOUT, 5000).
 
 %% Types
--type identity() :: [binary()].
--type rawdt()    :: {{binary(), riakc_datatype:datatype()}, any()}.
 -type data()     :: riakc_map:crdt_map().
 -type account()  :: riakc_map:crdt_map().
+-type identity() :: [binary()].
+-type rawdt()    :: {{binary(), riakc_datatype:datatype()}, any()}.
 
--export_type([identity/0, rawdt/0, account/0, data/0]).
+-export_type([account/0, data/0, identity/0, rawdt/0]).
 
 %% =============================================================================
 %% API
@@ -212,11 +212,11 @@ remove_identity_dt(Identity, A) ->
 			A
 	end.
 
--spec fold_identities_dt(fun((identity(), any()) -> any()), [binary()], any(), account()) -> any().
+-spec fold_identities_dt(fun((identity(), [rawdt()], any()) -> any()), [binary()], any(), account()) -> any().
 fold_identities_dt(HandleIdentity, Keys, AccIn, A) ->
 	case riakc_map:find({<<"auth">>, map}, A) of
 		{ok, Input} ->
-			fold_identies_in_dt(HandleIdentity, Keys, AccIn, Input);
+			fold_identities_in_dt(HandleIdentity, Keys, AccIn, Input);
 		_ ->
 			%% There is no "auth" property in the account object,
 			%% so that our work is done.
@@ -262,20 +262,20 @@ remove_in_dt([], M)      -> M;
 remove_in_dt([Key], M)   -> riakc_map:erase({Key, map}, M);
 remove_in_dt([Key|T], M) -> riakc_map:update({Key, map}, fun(Obj) -> remove_in_dt(T, Obj) end, M).
 
--spec fold_identies_in_dt(fun((identity(), any()) -> any()), [binary()], any(), [rawdt()]) -> any().
-fold_identies_in_dt(Handle, Keys, AccIn, Input) ->
-	fold_identies_in_dt(Handle, Keys, AccIn, Input, []).
+-spec fold_identities_in_dt(fun((identity(), [rawdt()], any()) -> any()), [binary()], any(), [rawdt()]) -> any().
+fold_identities_in_dt(Handle, Keys, AccIn, Input) ->
+	fold_identities_in_dt(Handle, Keys, AccIn, Input, []).
 
--spec fold_identies_in_dt(fun((identity(), any()) -> any()), [binary()], any(), [rawdt()], [binary()]) -> any().
-fold_identies_in_dt(Handle, Keys0, AccIn0, Input0, Acc) ->
+-spec fold_identities_in_dt(fun((identity(), [rawdt()], any()) -> any()), [binary()], any(), [rawdt()], [binary()]) -> any().
+fold_identities_in_dt(Handle, Keys0, AccIn0, Input0, Acc) ->
 	lists:foldl(
 		fun
 			({{Segment, map}, Input1}, AccIn1) ->
 				case filter_identity_keys(Keys0, Segment) of
 					{ok, Keys1} ->
-						fold_identies_in_dt(Handle, Keys1, AccIn1, Input1, [Segment|Acc]);
+						fold_identities_in_dt(Handle, Keys1, AccIn1, Input1, [Segment|Acc]);
 					commit ->
-						Handle(lists:reverse([Segment|Acc]), AccIn1);
+						Handle(lists:reverse([Segment|Acc]), Input1, AccIn1);
 					_ ->
 						%% The segment's name doesn't match any of the specified keys.
 						AccIn1
@@ -285,7 +285,6 @@ fold_identies_in_dt(Handle, Keys0, AccIn0, Input0, Acc) ->
 				%% so that it cannot be a segment.
 				AccIn1
 		end, AccIn0, Input0).
-
 
 -spec filter_identity_keys(Keys, binary()) -> {ok, Keys} | commit | error when Keys :: [[binary()]].
 filter_identity_keys(Keys, Segment) ->
