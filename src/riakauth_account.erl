@@ -220,7 +220,7 @@ fold_identities_dt(HandleIdentity, Keys, AccIn, A) ->
 		_ ->
 			%% There is no "auth" property in the account object,
 			%% so that our work is done.
-			A
+			AccIn
 	end.
 
 %% =============================================================================
