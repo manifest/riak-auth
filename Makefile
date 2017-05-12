@@ -7,7 +7,10 @@ DEP_PLUGINS = \
 DEPS = \
 	riakc
 
-dep_riakc = git https://github.com/basho/riak-erlang-client.git 2.5.0
+NO_AUTOPATCH = \
+	riak_pb
+
+dep_riakc = git https://github.com/basho/riak-erlang-client.git 2.5.3
 
 BUILD_DEPS = version.mk
 dep_version.mk = git git://github.com/manifest/version.mk.git master
