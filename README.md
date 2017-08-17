@@ -79,10 +79,15 @@ In the following example, you will see how you can use the library
 to manage multiple user's identities.
 
 ```erlang
-%% Specifying buckets and opening a connection.
+%% Initializing a connection to Riak KV.
+{ok, S, _} = erl_scan:string(os:getenv("DEVELOP_ENVIRONMENT")),
+{ok, Conf} = erl_parse:parse_term(S),
+#{kv_protobuf := #{host := Host, port := Port}} = Conf,
+{ok, Pid} = riakc_pb_socket:start_link(Host, Port).
+
+%% Specifying index and bucket
 Index = <<"riakauth_account_idx">>,
-Bucket = {<<"riakauth_account_t">>, <<"riakauth-account">>},
-{ok, Pid} = riakc_pb_socket:start_link("192.168.99.100", 8087).
+Bucket = {<<"riakauth_account_t">>, <<"riakauth-account">>}.
 
 %% The "riakauth:authenticate/{5,6,7}" function above creates accounts,
 %% but we can also use functions from "riakauth_account" module for that purpose.
