@@ -46,6 +46,7 @@
 	update_dt/3,
 	update_dt/4,
 	data_rawdt/1,
+	find_data_rawdt/1,
 	update_data_dt/2,
 	identity_rawdt/2,
 	find_identity_rawdt/2,
@@ -165,6 +166,21 @@ update_dt(Identity, HandleData, CreatedAt, A0) ->
 	A1 = update_identity_dt(Identity, CreatedAt, A0),
 	update_data_dt(HandleData, A1).
 
+-spec data_rawdt(account()) -> [rawdt()].
+data_rawdt(A) ->
+	case find_data_rawdt(A) of
+		{ok, Val} -> Val;
+		_         -> exit(missing_data)
+	end.
+
+-spec find_data_rawdt(account()) -> {ok, [rawdt()]} | error.
+find_data_rawdt(A) ->
+	riakc_map:find({<<"data">>, map}, A).
+
+-spec update_data_dt(fun((data()) -> data()), account()) -> account().
+update_data_dt(HandleData, A) ->
+	riakc_map:update({<<"data">>, map}, HandleData, A).
+
 -spec identity_rawdt(identity(), account()) -> [rawdt()].
 identity_rawdt(Identity, A) ->
 	case find_identity_rawdt(Identity, A) of
@@ -178,14 +194,6 @@ find_identity_rawdt(Identity, A) ->
 		{ok, Raw} -> find_in_rawdt(Identity, Raw);
 		_         -> error
 	end.
-
--spec data_rawdt(account()) -> any().
-data_rawdt(A) ->
-	riakc_map:fetch({<<"data">>, map}, A).
-
--spec update_data_dt(fun((data()) -> data()), account()) -> account().
-update_data_dt(HandleData, A) ->
-	riakc_map:update({<<"data">>, map}, HandleData, A).
 
 -spec update_identity_dt(identity(), account()) -> account().
 update_identity_dt(Identity, A) ->
